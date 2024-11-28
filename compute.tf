@@ -4,6 +4,31 @@ resource "aws_instance" "jenkins" {
   subnet_id     = aws_subnet.main_a.id
   security_groups = [aws_security_group.web_sg.id]
   key_name      = aws_key_pair.generated_key.key_name
+
+  user_data = <<-EOF
+              #!/bin/bash
+              # Update the package repository
+              sudo yum update -y
+
+              # Install Java
+              sudo yum install -y java-1.8.0-openjdk
+
+              # Add the Jenkins repository
+              sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat/jenkins.repo
+              sudo rpm --import https://pkg.jenkins.io/redhat/jenkins.io.key
+
+              # Install Jenkins
+              sudo yum install -y jenkins
+
+              # Start Jenkins
+              sudo systemctl start jenkins
+              sudo systemctl enable jenkins
+
+              # Open the firewall for Jenkins
+              sudo iptables -I INPUT -p tcp --dport 8080 -j ACCEPT
+              sudo service iptables save
+              EOF
+
   tags = {
     Name = "Jenkins"
   }
@@ -50,5 +75,5 @@ resource "aws_instance" "production2" {
   key_name      = aws_key_pair.generated_key.key_name
   tags = {
     Name = "Production2"
-  }
+  }
 }
